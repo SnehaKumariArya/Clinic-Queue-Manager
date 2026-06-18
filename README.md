@@ -10,24 +10,24 @@ Engineered natively on a **Local-First, Distributed-Radio Data Protocol**, the s
 
 ## 🚀 Core Architecture & Features
 
-### 🖥️ 1. Comprehensive Reception Intake (`receptionist.html`)
-* **Rapid Entry Form:** Captures vital demographics (Name, Mobile, Age, and Gender) in under 5 seconds.
-* **Emergency Triage Trigger:** Bypasses normal token increments to automatically route critical or senior patients straight to the top of the waitlist.
-* **Smart Buffering (Hold/Recall):** "Park" absent no-show patients cleanly to the side without flushing their token history, and recall them instantly when they step back into the clinic.
-* **Thermal Slip Printing Engine:** Generates instant browser-level printable tokens containing dynamic tracking parameters.
-* **Live Broadcast Warnings:** Allows the front desk to notify all waiting patients simultaneously of general scheduling delays (e.g., during emergency delays).
+## 💎 Operational Module Matrix
 
-### 👨‍⚕️ 2. Elite Doctor EHR Console (`doctor.html`)
-* **Ergonomic Design:** Clean, eye-strain-reducing dark interface designed for full-shift medical usage.
-* **Structured Data Entry:** Segregated entry cards for Demographics, Complaints/Symptoms, Vital Metrics (BP, Pulse, Temp, Weight), Prescribed Medications, and Laboratory Diagnostics.
-* **Clinical Presets & Shortcuts:** Clickable medical macros for seasonal cases (Flu, Acidity, Hypertension) to minimize manual typing.
-* **Zero-Mouse Workflow:** Hit `Ctrl + Enter` to instantly log the case history, push data out to the patient, clear inputs, and call the next sequential ticket.
-* **Silent Intercom Panic Alarm:** Instant distress button that fires flashing alerts directly onto the receptionist's screen.
-* **Print Engine:** Generates pristine, neatly formatted, physical printouts for patients requiring paper slips for local pharmacies or insurance claims.
+### 🚀 1. Advanced Reception Intake Command Panel (`receptionist.html`)
+* **Multi-Variant Ingestion Engine:** Structured data forms capturing primary informatics parameters (Name, Contact Link, Age, and Sex Identification vectors).
+* **Triage Priority Overrides:** Binary boolean emergency flag mechanics sorting database queries instantly, allowing high-risk clinical targets to cleanly step into line sequence ahead of standard chronological token tracking.
+* **Volatility Queue Buffering (Hold/Recall):** Safely isolates clinical "No-Shows" from the primary processing pipeline into a temporary holding record array without flushing ticket identification history metrics.
+* **Thermal Slip Spooler:** Standard JavaScript layout printing subsystem executing instant local thermal token slips embedded with dynamic routing links.
 
-### 📱 3. Live Patient Tracker (`patient.html`)
-* **Anxiety Reducer:** Patients track dynamic metrics straight on their smartphones (Tokens remaining ahead, changing wait times based on historical consultation averages).
-* **Automatic Notification Broadcasts:** Screens turn live-green when called inside, flash warning bars during delays, and unlock a secure **Digital Medical Summary Report** immediately after the checkup is finalized.
+### 👨‍⚕️ 2. Structured Clinical EHR Workspace (`doctor.html`)
+* **Ergonomic Visual Skin:** Dark mode interface layout (Slate/Slate-900 color matrix) intentionally structured to mitigate ocular strain over prolonged clinician work shifts.
+* **Discrete EHR Data Containers:** Independent Document Object Model (DOM) inputs decoupling Patient Demographics, Presenting Complaints, Vital Signs Matrix (`BP`, `Pulse Rate`, `Temperature`, `Body Mass Index`), Medication Formulation Plan, and Laboratory Testing Orders.
+* **Clinical Presets Macro Library:** Fast-click text macro expansion triggers minimizing repetitive keystroke inputs for routine seasonal diagnoses (Viral syndromes, Gastrointestinal issues, Hypertension checkups).
+* **Zero-Latency Hotkey Handlers:** Binding `Ctrl + Enter` to compile notes strings, fire real-time background WebSocket synchronization signals, clear memory form caches, and call the next sequential ticket in line within a singular runtime lifecycle block.
+
+### 📱 3. Reactive Client Status Gateway (`patient.html`)
+* **Anxiety Mitigation Interface:** Real-time mobile interface compiling position parameters (Tokens Remaining Ahead) and mathematical rolling consultation duration weights to formulate highly accurate live ETAs.
+* **Real-Time Intercom Interceptors:** WebSockets state-mutation hooks tracking clinic wide delays or immediate call-inside priorities.
+* **Secure Document Unlock:** Deliviers individual clinical summaries directly to the patient’s web-browser window immediately upon session compilation.
 
 ---
 
