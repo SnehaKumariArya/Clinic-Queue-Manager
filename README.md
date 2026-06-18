@@ -60,11 +60,11 @@ To run this platform completely offline inside a clinic using a local Wi-Fi rout
 ## Accessing the Panels
 Upon booting, the console terminal will extract your machine's local router IPv4 address and print your operational links:
 
-* **Receptionist Panel: http://<YOUR_LOCAL_IP>:5000/receptionist.html
+* Receptionist Panel: http://<YOUR_LOCAL_IP>:5000/receptionist.html
 
-* **Doctor Console: http://<YOUR_LOCAL_IP>:5000/doctor.html
+* Doctor Console: http://<YOUR_LOCAL_IP>:5000/doctor.html
 
-* **Patient Portal Display: http://<YOUR_LOCAL_IP>:5000/patient.html?token=1
+* Patient Portal Display: http://<YOUR_LOCAL_IP>:5000/patient.html?token=1
 
 ---
 
