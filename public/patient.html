@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Token Tracker</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { background-color: #f8fafc; color: #334155; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 15px; }
+    
+    .mobile-card { width: 100%; max-width: 430px; background: white; border-radius: 24px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.05); overflow: hidden; border: 1px solid #e2e8f0; }
+    .header-accent { background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); padding: 35px 25px; text-align: center; color: white; }
+    .serving-huge { font-size: 64px; font-weight: 800; margin-top: 10px; letter-spacing: -1px; }
+    
+    .content-body { padding: 30px 25px; display: flex; flex-direction: column; gap: 20px; }
+    
+    .info-tile { background: #f1f5f9; border-radius: 16px; padding: 20px; display: flex; justify-content: space-between; align-items: center; }
+    .info-tile.highlight { background: #eff6ff; border: 1px solid #bfdbfe; }
+    .info-label { font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; font-weight: 600; }
+    .info-value { font-size: 24px; font-weight: 700; color: #1e293b; }
+    
+    .status-banner { padding: 20px; border-radius: 16px; text-align: center; font-weight: 700; font-size: 18px; display: flex; align-items: center; justify-content: center; gap: 10px; line-height: 1.4; }
+    .status-wait { background: #fff7ed; color: #c2410c; border: 1px solid #ffedd5; }
+    .status-active { background: #ecfdf5; color: #047857; border: 1px solid #d1fae5; font-size: 20px; }
+    .status-passed { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+
+    .report-card { background: #fafafa; border: 1px dashed #cbd5e1; border-radius: 16px; padding: 20px; display: none; flex-direction: column; gap: 12px; }
+    .report-header { font-weight: 700; color: #1e3a8a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; display: flex; justify-content: space-between; font-size: 15px; }
+    .report-data { font-size: 14px; line-height: 1.6; color: #334155; white-space: pre-line; }
+  </style>
+</head>
+<body>
+
+  <div class="mobile-card">
+    <div class="header-accent">
+      <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; opacity: 0.8;">Currently Inside Doctor's Room</div>
+      <div class="serving-huge" id="now-serving">0</div>
+    </div>
+
+    <div class="content-body">
+      <div class="info-tile highlight">
+        <div>
+          <div class="info-label" style="color: #2563eb;">Your Assigned Spot</div>
+          <div class="info-value" id="your-token" style="color: #1d4ed8; font-size: 28px;">-</div>
+        </div>
+        <span>🎫</span>
+      </div>
+
+      <div class="info-tile" id="tile-ahead">
+        <div>
+          <div class="info-label">Tokens Remaining Ahead</div>
+          <div class="info-value" id="tokens-ahead">-</div>
+        </div>
+        <span>👥</span>
+      </div>
+
+      <div class="info-tile" id="tile-eta">
+        <div>
+          <div class="info-label">Calculated Est. Wait</div>
+          <div class="info-value" id="eta">-</div>
+        </div>
+        <span>⏱️</span>
+      </div>
+
+      <div id="status-banner-placeholder" class="status-banner status-wait">
+        Gathering positioning logs...
+      </div>
+
+      <div class="report-card" id="medical-report-box">
+        <div class="report-header">
+          <span>📋 Official Consultation Summary</span>
+          <span style="color: #16a34a; font-size: 13px;">✔ Verified</span>
+        </div>
+        <div class="report-data" id="report-content">Loading prescription findings...</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const urlParams = new URLSearchParams(window.location.search);
+    const myToken = parseInt(urlParams.get('token')) || null;
+    let delayAlertMinutes = 0;
+
+    if (!myToken) {
+      document.body.innerHTML = `<div style="text-align:center; padding:40px; font-family:sans-serif;">
+        <h3 style="color:#ef4444; margin-bottom:10px;">⚠️ Tracking URL Parameter Missing</h3>
+        <p style="color:#64748b;">Scan a valid QR code token receipt to track live clinic updates.</p>
+      </div>`;
+    } else {
+      document.getElementById('your-token').innerText = `Token ${myToken}`;
+    }
+
+    async function updatePatientScreen() {
+      if(!myToken) return;
+      const res = await fetch('/api/queue-state');
+      const data = await res.json();
+      
+      const currentToken = data.clinic.currentToken;
+      const avgTime = data.clinic.avgConsultationTime;
+      const tokensAhead = myToken - currentToken;
+      
+      document.getElementById('now-serving').innerText = currentToken > 0 ? `Token ${currentToken}` : "None";
+      const banner = document.getElementById('status-banner-placeholder');
+      const reportBox = document.getElementById('medical-report-box');
+
+      const pRes = await fetch(`/api/patient/details/${myToken}`);
+      const selfData = await pRes.json();
+
+      if (selfData.status === 'completed') {
+        document.getElementById('tile-ahead').style.display = 'none';
+        document.getElementById('tile-eta').style.display = 'none';
+        
+        banner.className = "status-banner status-passed";
+        banner.innerHTML = "✅ Checkup Complete. Take Care!";
+        banner.style.background = "#f0fdf4";
+        banner.style.color = "#16a34a";
+        banner.style.border = "1px solid #bbf7d0";
+        
+        reportBox.style.display = 'flex';
+        document.getElementById('report-content').innerText = selfData.clinicalNotes || "Prescription uploaded. Please visit pharmacy counter.";
+      } else if (tokensAhead > 0) {
+        document.getElementById('tile-ahead').style.display = 'flex';
+        document.getElementById('tile-eta').style.display = 'flex';
+        reportBox.style.display = 'none';
+        
+        document.getElementById('tokens-ahead').innerText = tokensAhead;
+        
+        // Dynamic wait adding delay padding if an active delay broadcast is active
+        const cumulativeWait = (tokensAhead * avgTime) + delayAlertMinutes;
+        document.getElementById('eta').innerText = `${cumulativeWait} Mins`;
+        
+        // FEATURE HOOK: Display an active notification message if a delay was broadcasted
+        if (delayAlertMinutes > 0) {
+          banner.className = "status-banner";
+          banner.style.background = "#fef2f2";
+          banner.style.color = "#991b1b";
+          banner.style.border = "1px solid #fca5a5";
+          banner.innerHTML = `⚠️ Notice: Doctor handling emergency case. Flow delayed by ~${delayAlertMinutes} mins.`;
+        } else {
+          banner.className = "status-banner status-wait";
+          banner.style.background = "#fff7ed";
+          banner.style.color = "#c2410c";
+          banner.style.border = "1px solid #ffedd5";
+          banner.innerHTML = "⏳ Please wait comfortably in the waiting area";
+        }
+      } else if (tokensAhead === 0) {
+        document.getElementById('tile-ahead').style.display = 'flex';
+        document.getElementById('tile-eta').style.display = 'flex';
+        reportBox.style.display = 'none';
+        
+        document.getElementById('tokens-ahead').innerText = "0";
+        document.getElementById('eta').innerText = "0 Mins";
+        banner.className = "status-banner status-active";
+        banner.style.background = "#ecfdf5";
+        banner.style.color = "#047857";
+        banner.style.border = "1px solid #d1fae5";
+        banner.innerHTML = "🎉 It's your turn! Proceed inside immediately";
+      } else {
+        banner.className = "status-banner status-passed";
+        banner.innerHTML = "Consultation Processed";
+      }
+    }
+
+    // FEATURE RECEIVER MODULE: Intercepts real-time queue delays pushed by the front desk
+    socket.on('patient-delay-alert', (data) => {
+      delayAlertMinutes = parseInt(data.minutes) || 0;
+      updatePatientScreen();
+    });
+
+    // Reset delay state if a fresh token step happens (implicitly clearing old overrides)
+    socket.on('queue-updated', () => {
+      // Once the engine jumps to a new number, we safely drop old delay variables
+      delayAlertMinutes = 0; 
+      updatePatientScreen();
+    });
+    
+    updatePatientScreen();
+  </script>
+</body>
+</html>

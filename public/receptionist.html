@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clinic Flow - Reception Control Panel</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { background-color: #f4f6f9; color: #333; display: flex; height: 100vh; overflow: hidden; }
+    
+    /* Layout Framework */
+    .sidebar { width: 420px; background: white; border-right: 1px solid #e2e8f0; padding: 30px; display: flex; flex-direction: column; justify-content: space-between; overflow-y: auto; }
+    .main-panel { flex: 1; padding: 40px; overflow-y: auto; display: flex; flex-direction: column; gap: 30px; }
+    
+    /* Typography */
+    h1 { font-size: 24px; color: #1e293b; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+    h2 { font-size: 18px; color: #475569; font-weight: 600; margin-bottom: 15px; margin-top: 10px; }
+    
+    /* Registration Form Elements */
+    .intake-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-top: 20px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group.full-width { grid-column: span 2; }
+    
+    label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; font-weight: 600; }
+    input, select { padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 15px; background: white; transition: all 0.2s; width: 100%; }
+    input:focus, select:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15); }
+    
+    /* Emergency Checkbox Alert */
+    .checkbox-group { display: flex; align-items: center; gap: 8px; background: #fff; border: 1px solid #cbd5e1; padding: 10px; border-radius: 8px; cursor: pointer; }
+    .checkbox-group input { width: auto; cursor: pointer; }
+    
+    /* Buttons Component Toolkit */
+    button { padding: 12px 18px; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn-primary { background: #2563eb; color: white; margin-top: 10px; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-success { background: #10b981; color: white; font-size: 18px; padding: 16px; margin-top: 15px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2); }
+    .btn-success:hover { background: #059669; }
+    .btn-secondary { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; margin-top: 10px; }
+    .btn-secondary:hover { background: #e2e8f0; }
+    .btn-danger { background: #ef4444; color: white; padding: 10px; font-size: 14px; }
+    .btn-danger:hover { background: #dc2626; }
+    
+    /* Action Row Links & Mini Badges */
+    .btn-track { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; font-size: 12px; padding: 5px 10px; width: auto; font-weight: 600; text-decoration: none; border-radius: 6px; }
+    .btn-track:hover { background: #dbeafe; }
+    .btn-reprint { background: #f8fafc; color: #475569; border: 1px solid #cbd5e1; font-size: 12px; padding: 5px 10px; width: auto; font-weight: 600; border-radius: 6px; margin-left: 6px; }
+    .btn-reprint:hover { background: #edf2f7; color: #1a202c; }
+    .btn-recall { background: #f59e0b; color: white; font-size: 12px; padding: 5px 10px; width: auto; font-weight: 600; border-radius: 6px; }
+
+    /* Queue Metrics Display Layout */
+    .queue-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 20px; }
+    .status-card { background: white; border-radius: 12px; padding: 20px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 15px; }
+    
+    .patient-list { display: flex; flex-direction: column; gap: 10px; background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 15px; min-height: 80px; }
+    .patient-row { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f8fafc; border-radius: 8px; border-left: 4px solid #64748b; }
+    .patient-row.held-style { border-left-color: #f59e0b; background: #fffbeb; }
+    .patient-row.priority-style { border-left-color: #ef4444; background: #fef2f2; }
+    
+    .token-badge { background: #e2e8f0; color: #334155; font-weight: 700; padding: 4px 10px; border-radius: 20px; font-size: 13px; margin-right: 12px; }
+    .meta-desc { font-size: 12px; color: #64748b; margin-top: 2px; }
+  </style>
+</head>
+<body>
+
+  <div class="sidebar">
+    <div>
+      <h1><span>🩺</span> ClinicFlow</h1>
+      
+      <form id="add-patient-form" class="intake-card" onsubmit="addPatient(event)">
+        <h3 style="font-size: 14px; margin-bottom: 15px; color: #1e293b;">Patient Token Generation Form</h3>
+        
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <label for="patient-name">Patient Name *</label>
+            <input type="text" id="patient-name" placeholder="Sneha Sharma" required autofocus autocomplete="off">
+          </div>
+          
+          <div class="form-group full-width">
+            <label for="patient-phone">Mobile Phone No</label>
+            <input type="tel" id="patient-phone" placeholder="9876543210" autocomplete="off">
+          </div>
+
+          <div class="form-group">
+            <label for="patient-age">Age (Years)</label>
+            <input type="number" id="patient-age" placeholder="20" min="0" max="125">
+          </div>
+
+          <div class="form-group">
+            <label for="patient-gender">Gender</label>
+            <select id="patient-gender">
+              <option value="">Select</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <div class="form-group full-width" style="margin-top: 5px;">
+            <label class="checkbox-group">
+              <input type="checkbox" id="patient-priority">
+              <span style="font-size: 13px; color: #b91c1c; font-weight: 600;">🚨 Mark as Emergency / Triage</span>
+            </label>
+          </div>
+        </div>
+        
+        <button type="submit" class="btn-primary">Generate Token Ticket</button>
+      </form>
+      
+      <div style="margin-top: 25px; border-top: 1px solid #f1f5f9; padding-top: 20px;">
+        <label>Live Station Desk Actions</label>
+        <button class="btn-success" onclick="callNext()">⏩ Call Next Patient</button>
+        <button class="btn-secondary" onclick="holdPatient()">⚠️ Put Current on Hold</button>
+        
+        <button class="btn-secondary" style="background:#fef2f2; color:#991b1b; border-color:#fca5a5; margin-top: 8px;" onclick="sendDelayBroadcast()">⏳ Broadcast 15-Min Delay</button>
+      </div>
+    </div>
+    <button class="btn-danger" onclick="resetQueue()">Reset Daily Ledger</button>
+  </div>
+
+  <div class="main-panel">
+    <div class="queue-grid">
+      <div class="status-card" style="border-top: 4px solid #2563eb;">
+        <label>Active Serving Station</label>
+        <div style="font-size: 36px; font-weight: 800; color: #1e293b;" id="stat-serving">None</div>
+      </div>
+      <div class="status-card" style="border-top: 4px solid #10b981;">
+        <label>Total Waiting</label>
+        <div style="font-size: 36px; font-weight: 800; color: #1e293b;" id="stat-waiting">0</div>
+      </div>
+      <div class="status-card" style="border-top: 4px solid #f59e0b;">
+        <label>Placed on Hold</label>
+        <div style="font-size: 36px; font-weight: 800; color: #1e293b;" id="stat-held">0</div>
+      </div>
+    </div>
+
+    <div>
+      <h2>Upcoming Waitlist Order & Live Links</h2>
+      <div class="patient-list" id="waiting-list-container"></div>
+    </div>
+
+    <div>
+      <h2 style="color: #b45309;">Patients Currently Parked on Hold</h2>
+      <div class="patient-list" id="held-list-container" style="border-color: #fde68a;"></div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+
+    async function loadState() {
+      const res = await fetch('/api/queue-state');
+      const data = await res.json();
+      
+      document.getElementById('stat-serving').innerText = data.clinic.currentToken > 0 ? `Token ${data.clinic.currentToken}` : 'None';
+      document.getElementById('stat-waiting').innerText = data.waitingPatients.length;
+      document.getElementById('stat-held').innerText = data.heldPatients.length;
+      
+      // Render Waiting Patients List Matrix with Demographics & Reprint Hooks
+      const waitContainer = document.getElementById('waiting-list-container');
+      waitContainer.innerHTML = data.waitingPatients.length === 0 
+        ? '<div style="color:#94a3b8; text-align:center; padding:20px;">No patients currently waiting</div>'
+        : data.waitingPatients.map(p => {
+            const priorityClass = p.isPriority ? 'patient-row priority-style' : 'patient-row';
+            const metaInfo = `${p.age ? p.age+' Years' : ''}${p.gender ? ' ('+p.gender+')' : ''} ${p.isPriority ? '• [EMERGENCY TRIAGE]' : ''}`.trim();
+            
+            // Clean dynamic string values for safe printer function execution parameters
+            const safeName = p.name.replace(/'/g, "\\'");
+            const safeGender = (p.gender || '').replace(/'/g, "\\'");
+
+            return `
+              <div class="${priorityClass}">
+                <div>
+                  <span class="token-badge">Token ${p.tokenNumber}</span>
+                  <span style="font-weight:600; color:#1e293b;">${p.name}</span>
+                  <div class="meta-desc">${metaInfo || 'No demographics registered.'}</div>
+                </div>
+                <div>
+                  <a href="${window.location.origin}/patient.html?token=${p.tokenNumber}" target="_blank" class="btn-track">🔗 Live View</a>
+                  <button class="btn-reprint" onclick="printSlip(${p.tokenNumber}, '${safeName}', '${p.age || ''}', '${safeGender}')">🖨️ Reprint</button>
+                </div>
+              </div>
+            `;
+          }).join('');
+
+      // Render Held Patients List
+      const heldContainer = document.getElementById('held-list-container');
+      heldContainer.innerHTML = data.heldPatients.length === 0 
+        ? '<div style="color:#94a3b8; text-align:center; padding:15px;">No patients parked on hold</div>'
+        : data.heldPatients.map(p => `
+            <div class="patient-row held-style">
+              <div>
+                <span class="token-badge" style="background:#fef3c7; color:#d97706;">Token ${p.tokenNumber}</span>
+                <span style="font-weight:600; color:#1e293b;">${p.name} (Missed Turn)</span>
+              </div>
+              <button class="btn-recall" onclick="recallPatient(${p.tokenNumber})">🔄 Recall Now</button>
+            </div>
+          `).join('');
+    }
+
+    async function addPatient(e) {
+      e.preventDefault();
+      
+      const name = document.getElementById('patient-name').value;
+      const phone = document.getElementById('patient-phone').value;
+      const age = document.getElementById('patient-age').value;
+      const gender = document.getElementById('patient-gender').value;
+      const isPriority = document.getElementById('patient-priority').checked;
+
+      await fetch('/api/patient/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, phone, age, gender, isPriority })
+      });
+      
+      // Flush fields cleanly for incoming entries
+      document.getElementById('add-patient-form').reset();
+      document.getElementById('patient-name').focus();
+    }
+
+    // FEATURE: Dynamic Browser-Level Thermal Ticket Layout Spitter Function
+    function printSlip(token, name, age, gender) {
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(`
+        <html>
+        <head>
+          <title>Token Slip #${token}</title>
+          <style>
+            body { font-family: 'Segoe UI', Arial, sans-serif; text-align: center; padding: 15px; color: #222; margin: 0; }
+            .ticket-box { border: 2px dashed #333; padding: 20px; border-radius: 10px; max-width: 280px; margin: 0 auto; }
+            h1 { font-size: 54px; margin: 12px 0; font-weight: 800; color: #1e293b; letter-spacing: -1px; }
+            h3 { font-size: 16px; color: #475569; letter-spacing: 0.5px; margin-bottom: 5px; }
+            p { font-size: 13px; margin: 6px 0; color: #334155; }
+            .footer-notes { font-size: 10px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 10px; margin-top: 15px; line-height: 1.4; }
+          </style>
+        </head>
+        <body onload="window.print(); window.close();">
+          <div class="ticket-box">
+            <h3>MEDICAL CENTER TOKEN</h3>
+            <h1>#${token}</h1>
+            <p><strong>Patient:</strong> ${name}</p>
+            ${age || gender ? `<p><strong>Details:</strong> ${age ? age+'Y' : ''} ${gender ? gender : ''}</p>` : ''}
+            <div class="footer-notes">
+              Scan the lounge TV QR Code or track your live position breakdown directly on your smartphone via text link.<br>
+              <span style="font-size:9px; color:#94a3b8; display:block; margin-top:5px;">Printed: ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+            </div>
+          </div>
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+    }
+
+    // FEATURE: Emit a 15-Minute Queue Delay Signal Across WebSocket Sockets
+    function sendDelayBroadcast() {
+      if(confirm("Are you sure you want to broadcast a 15-minute emergency delay alert to all patient devices?")) {
+        socket.emit('broadcast-delay-signal', { minutes: 15 });
+      }
+    }
+
+    async function callNext() { await fetch('/api/queue/next', { method: 'POST' }); }
+    async function holdPatient() { await fetch('/api/queue/hold', { method: 'POST' }); }
+    async function recallPatient(tokenNumber) {
+      await fetch('/api/queue/recall', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tokenNumber })
+      });
+    }
+    async function resetQueue() { 
+      if(confirm("Completely wipe daily metrics?")) await fetch('/api/queue/reset'); 
+    }
+
+    socket.on('reception-panic-flash', (data) => {
+      alert(`🚨 CRITICAL ASSISTANCE ALERT: Doctor triggered the panic signal button inside ${data.room}! Intervene immediately.`);
+    });
+
+    socket.on('queue-updated', loadState);
+    loadState();
+  </script>
+</body>
+</html>

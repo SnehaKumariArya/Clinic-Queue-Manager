@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Doctor Console - Advanced Structured EHR</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { background: #0f172a; color: #f8fafc; display: flex; height: 100vh; overflow: hidden; }
+    
+    /* Layout Framework */
+    .sidebar { width: 300px; background: #1e293b; border-right: 1px solid #334155; display: flex; flex-direction: column; }
+    .sidebar-section { padding: 20px; border-bottom: 1px solid #334155; flex: 1; overflow-y: auto; }
+    .sidebar-section.fixed-top { flex: none; background: #111827; display: flex; justify-content: space-between; align-items: center; }
+    .work-zone { flex: 1; padding: 25px; overflow-y: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .full-width { grid-column: span 2; }
+    
+    /* Typography */
+    h1 { font-size: 18px; color: #38bdf8; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    h2 { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; font-weight: 600; }
+    h3 { font-size: 14px; color: #f1f5f9; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+
+    /* Cards */
+    .card { background: #1e293b; border-radius: 14px; padding: 20px; border: 1px solid #334155; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2); }
+    .card.active-patient { background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%); border-color: #2563eb; display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; }
+    
+    /* Form Configurations */
+    .vitals-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .vital-box { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 8px 12px; }
+    .vital-box label { font-size: 10px; color: #94a3b8; font-weight: 600; display: block; margin-bottom: 2px; }
+    .vital-box input { background: transparent; border: none; color: #38bdf8; font-size: 15px; font-weight: 700; width: 100%; }
+    .vital-box input:focus { outline: none; border-color: #38bdf8; }
+
+    .input-field { width: 100%; background: #0f172a; border: 1px solid #334155; border-radius: 8px; color: #fff; padding: 10px; font-size: 14px; transition: border-color 0.2s; }
+    .input-field:focus { outline: none; border-color: #38bdf8; }
+    textarea.input-field { height: 90px; resize: none; }
+
+    /* Preset Chips */
+    .preset-container { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 5px; }
+    .chip { background: #334155; color: #cbd5e1; border: 1px solid #475569; padding: 4px 10px; border-radius: 15px; font-size: 11px; font-weight: 600; cursor: pointer; }
+    .chip:hover { background: #0ea5e9; color: white; border-color: #38bdf8; }
+    .chip.dosage-helper { background: #0f172a; border-color: #334155; color: #38bdf8; font-size: 10px; }
+    .chip.dosage-helper:hover { background: #38bdf8; color: #0f172a; }
+
+    /* Queue Element Rows */
+    .patient-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #0f172a; border-radius: 8px; margin-bottom: 6px; border: 1px solid #334155; font-size: 13px; }
+    .token-badge { background: #334155; color: #38bdf8; font-weight: 700; padding: 2px 6px; border-radius: 10px; font-size: 11px; }
+    
+    /* Interactive Actions Footer */
+    button { padding: 10px 16px; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+    .btn-primary { background: #0ea5e9; color: white; box-shadow: 0 4px 12px rgba(14, 165, 233, 0.2); }
+    .btn-primary:hover { background: #0284c7; }
+    .btn-hold { background: #f59e0b; color: white; padding: 6px 12px; font-size: 12px; }
+    .btn-panic { background: #ef4444; color: white; padding: 5px 10px; font-size: 11px; font-weight: 700; border-radius: 6px; }
+    .btn-secondary { background: #475569; color: white; margin-right: 10px; }
+    .btn-action-small { background: #38bdf8; color: #0f172a; font-size: 10px; padding: 3px 6px; border-radius: 4px; font-weight: 700; }
+
+    .detail-item { font-size: 13px; margin-bottom: 6px; color: #cbd5e1; }
+    .detail-item strong { color: #94a3b8; font-weight: 500; text-transform: uppercase; font-size: 11px; display: inline-block; width: 100px; }
+  </style>
+</head>
+<body>
+
+  <div class="sidebar">
+    <div class="sidebar-section fixed-top">
+      <h1><span>👨‍⚕️</span> Dr. Console</h1>
+      <button class="btn-panic" onclick="triggerPanicAlert()">🚨 Panic</button>
+    </div>
+    
+    <div class="sidebar-section">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <h2>Up Next In Line</h2>
+        <span style="background: #0ea5e9; color: white; font-size: 10px; padding: 1px 5px; border-radius: 8px; font-weight: 700;" id="waitlist-count">0 Waiting</span>
+      </div>
+      <div id="doctor-waitlist"></div>
+    </div>
+    
+    <div class="sidebar-section" style="background: #111827;">
+      <h2>Missed Turns (On Hold)</h2>
+      <div id="doctor-holdlist"></div>
+    </div>
+  </div>
+
+  <div class="work-zone">
+    
+    <div class="card active-patient full-width">
+      <div>
+        <label>Active Consultation Frame</label>
+        <div style="font-size: 24px; font-weight: 800; color: #ffffff; margin-top: 2px;" id="active-title">No Patient Inside</div>
+      </div>
+      <button class="btn-hold" id="hold-button-frame" onclick="holdCurrentPatient()" style="display: none;">⚠️ Flag No-Show (Hold)</button>
+    </div>
+
+    <div class="card">
+      <h3>📋 Patient Demographics</h3>
+      <div style="margin-top: 10px;">
+        <div class="detail-item"><strong>Token No:</strong> <span id="p-detail-token" style="color: #38bdf8; font-weight: 700;">--</span></div>
+        <div class="detail-item"><strong>Full Name:</strong> <span id="p-detail-name">--</span></div>
+        <div class="detail-item"><strong>Phone No:</strong> <span id="p-detail-phone">--</span></div>
+        <div class="detail-item"><strong>Age / Sex:</strong> <span id="p-detail-age-sex">--</span></div>
+        <div class="detail-item"><strong>Reg. Time:</strong> <span id="p-detail-date">--</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>🔍 Presenting Complaints & Symptoms</h3>
+      <div class="preset-container" style="margin-top: 5px;">
+        <div class="chip" onclick="applyProblemPreset('Fever, cough, weakness for 3 days.')">🌡️ Cold/Flu</div>
+        <div class="chip" onclick="applyProblemPreset('Sharp stomach burning, nausea post meals.')">🤢 Acid Gastric</div>
+        <div class="chip" onclick="applyProblemPreset('Severe headache, dizziness, mild anxiety.')">❤️ High BP Signs</div>
+      </div>
+      <textarea class="input-field" id="clinical-problem" placeholder="Describe the active health issues, historical timelines, or matching diagnostic symptoms..."></textarea>
+    </div>
+
+    <div class="card full-width">
+      <h3>📈 Patient Vital Metrics</h3>
+      <div class="vitals-grid" style="margin-top: 8px;">
+        <div class="vital-box"><label>BP (mmHg)</label><input type="text" id="vital-bp" placeholder="120/80"></div>
+        <div class="vital-box"><label>Pulse (bpm)</label><input type="text" id="vital-pulse" placeholder="72"></div>
+        <div class="vital-box"><label>Temp (°F)</label><input type="text" id="vital-temp" placeholder="98.6"></div>
+        <div class="vital-box"><label>Weight (kg)</label><input type="text" id="vital-weight" placeholder="65"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>💊 Prescribed Medications (Rx Plan)</h3>
+      <div class="preset-container" style="margin-top: 5px;">
+        <div class="chip" onclick="applyMedPreset('1. Tab Paracetamol 650mg\n   Dosage: ' )">Fever Base</div>
+        <div class="chip" onclick="applyMedPreset('1. Cap Pantoprazole 40mg\n   Dosage: ' )">Antacid Base</div>
+      </div>
+      
+      <textarea class="input-field" style="height: 120px;" id="clinical-medicines" placeholder="Enter medicine names... or use click assistants below to attach intake paths."></textarea>
+      
+      <div class="preset-container" style="margin-top: 8px;">
+        <span style="font-size: 11px; color: #94a3b8; align-self: center;">⚡ Quick Intake:</span>
+        <div class="chip dosage-helper" onclick="insertDosage('1-0-1 AF (Twice Daily, After Food) x 5 Days\n')">1-0-1 AF (5d)</div>
+        <div class="chip dosage-helper" onclick="insertDosage('1-1-1 AF (Thrice Daily, After Food) x 3 Days\n')">1-1-1 AF (3d)</div>
+        <div class="chip dosage-helper" onclick="insertDosage('0-0-1 HS (Once Daily, At Bedtime) x 5 Days\n')">0-0-1 HS (5d)</div>
+        <div class="chip dosage-helper" onclick="insertDosage('1-0-0 BB (Once Daily, Empty Stomach) x 7 Days\n')">1-0-0 BB (7d)</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>🧪 Laboratory Investigations & Diagnostic Tests</h3>
+      <div class="preset-container" style="margin-top: 5px;">
+        <div class="chip" onclick="applyTestPreset('- Complete Blood Count (CBC)\n- Widal Test (Typhoid Profile)\n- Dengue NS1 Antigen Test')">Fever Panel</div>
+        <div class="chip" onclick="applyTestPreset('- Serum Lipid Profile\n- Fasting Blood Sugar (FBS)\n- 12-Lead ECG Tracking')">Cardiac Vitals</div>
+      </div>
+      <textarea class="input-field" style="height: 120px;" id="clinical-tests" placeholder="Type list of blood panels, X-rays, Ultrasounds, or specialist advice requested..."></textarea>
+    </div>
+
+    <div class="full-width" style="display: flex; justify-content: flex-end; align-items: center; padding-top: 5px;">
+      <button class="btn-secondary" id="print-btn-frame" onclick="printPrescription()" style="display: none;">🖨️ Print Prescription</button>
+      <button class="btn-primary" onclick="submitConsultation()">📝 Complete Case & Call Next</button>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    let currentActiveToken = null;
+    let currentPatientData = null;
+
+    function applyProblemPreset(text) { document.getElementById('clinical-problem').value = text; }
+    function applyMedPreset(text) { document.getElementById('clinical-medicines').value = text; }
+    function applyTestPreset(text) { document.getElementById('clinical-tests').value = text; }
+
+    // FEATURE HELPER FUNCTION: Appends standard frequency instructions into active text cursor positioning
+    function insertDosage(dosageText) {
+      const medField = document.getElementById('clinical-medicines');
+      medField.value += dosageText;
+      medField.focus();
+    }
+
+    async function syncDoctorScreen() {
+      const res = await fetch('/api/queue-state');
+      const data = await res.json();
+      
+      currentActiveToken = data.clinic.currentToken;
+      const bannerHoldBtn = document.getElementById('hold-button-frame');
+      const printBtn = document.getElementById('print-btn-frame');
+
+      document.getElementById('waitlist-count').innerText = `${data.waitingPatients.length} Waiting`;
+
+      if(currentActiveToken > 0) {
+        bannerHoldBtn.style.display = "inline-flex";
+        printBtn.style.display = "inline-flex";
+        
+        const pRes = await fetch(`/api/patient/details/${currentActiveToken}`);
+        currentPatientData = await pRes.json();
+        
+        if (currentPatientData.name) {
+          document.getElementById('active-title').innerText = `Token ${currentPatientData.tokenNumber} : ${currentPatientData.name}`;
+          
+          document.getElementById('p-detail-token').innerText = currentPatientData.tokenNumber;
+          document.getElementById('p-detail-name').innerText = currentPatientData.name;
+          document.getElementById('p-detail-phone').innerText = currentPatientData.phone || 'N/A';
+          
+          const ageStr = currentPatientData.age ? `${currentPatientData.age} Years` : 'Not Specified';
+          const genderStr = currentPatientData.gender ? ` (${currentPatientData.gender})` : '';
+          document.getElementById('p-detail-age-sex').innerText = `${ageStr}${genderStr}`;
+          
+          document.getElementById('p-detail-date').innerText = new Date(currentPatientData.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        }
+      } else {
+        clearPatientDemographics();
+      }
+
+      // Render Up Next Waitlist
+      const waitContainer = document.getElementById('doctor-waitlist');
+      waitContainer.innerHTML = data.waitingPatients.length === 0 
+        ? '<div style="color:#64748b; text-align:center; font-size:12px; padding:10px;">Queue is clear</div>'
+        : data.waitingPatients.map(p => `
+            <div class="patient-row">
+              <span style="font-weight:600;">${p.name}</span>
+              <span class="token-badge">#${p.tokenNumber}</span>
+            </div>
+          `).join('');
+
+      // Render Hold Buffer
+      const holdContainer = document.getElementById('doctor-holdlist');
+      holdContainer.innerHTML = data.heldPatients.length === 0 
+        ? '<div style="color:#475569; text-align:center; font-size:12px; padding:10px;">No patients on hold</div>'
+        : data.heldPatients.map(p => `
+            <div class="patient-row" style="border-color:#b45309;">
+              <span>${p.name}</span>
+              <button class="btn-action-small" onclick="recallPatient(${p.tokenNumber})">Recall #${p.tokenNumber}</button>
+            </div>
+          `).join('');
+    }
+
+    function clearPatientDemographics() {
+      document.getElementById('active-title').innerText = "No Patient Inside";
+      document.getElementById('hold-button-frame').style.display = "none";
+      document.getElementById('print-btn-frame').style.display = "none";
+      document.getElementById('p-detail-token').innerText = '--';
+      document.getElementById('p-detail-name').innerText = '--';
+      document.getElementById('p-detail-phone').innerText = '--';
+      document.getElementById('p-detail-age-sex').innerText = '--';
+      document.getElementById('p-detail-date').innerText = '--';
+      currentPatientData = null;
+    }
+
+    async function submitConsultation() {
+      if(!currentActiveToken) return alert("No active patient configuration loaded.");
+      
+      const bp = document.getElementById('vital-bp').value;
+      const pulse = document.getElementById('vital-pulse').value;
+      const temp = document.getElementById('vital-temp').value;
+      const weight = document.getElementById('vital-weight').value;
+      
+      const problems = document.getElementById('clinical-problem').value;
+      const medicines = document.getElementById('clinical-medicines').value;
+      const tests = document.getElementById('clinical-tests').value;
+
+      const compiledNotes = `[VITALS] BP: ${bp || '--'}, Pulse: ${pulse || '--'}, Temp: ${temp || '--'}, Wt: ${weight || '--'}\n\n[SYMPTOMS & COMPLAINTS]\n${problems || 'None recorded'}\n\n[MEDICATIONS RX]\n${medicines || 'None prescribed'}\n\n[DIAGNOSTIC TESTS REQ]\n${tests || 'None requested'}`;
+      
+      await fetch('/api/queue/complete-active', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes: compiledNotes })
+      });
+
+      document.getElementById('vital-bp').value = '';
+      document.getElementById('vital-pulse').value = '';
+      document.getElementById('vital-temp').value = '';
+      document.getElementById('vital-weight').value = '';
+      document.getElementById('clinical-problem').value = '';
+      document.getElementById('clinical-medicines').value = '';
+      document.getElementById('clinical-tests').value = '';
+
+      await fetch('/api/queue/next', { method: 'POST' });
+    }
+
+    function printPrescription() {
+      if(!currentActiveToken || !currentPatientData) return;
+      
+      const bp = document.getElementById('vital-bp').value || '--';
+      const pulse = document.getElementById('vital-pulse').value || '--';
+      const temp = document.getElementById('vital-temp').value || '--';
+      const weight = document.getElementById('vital-weight').value || '--';
+      
+      const problems = document.getElementById('clinical-problem').value || 'None';
+      const medicines = document.getElementById('clinical-medicines').value || 'None prescribed.';
+      const tests = document.getElementById('clinical-tests').value || 'None requested.';
+
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(`
+        <html>
+        <head>
+          <title>Prescription Summary Token #${currentActiveToken}</title>
+          <style>
+            body { font-family: 'Segoe UI', sans-serif; padding: 40px; color: #333; line-height: 1.5; }
+            .header { text-align: center; border-bottom: 3px double #333; padding-bottom: 12px; margin-bottom: 20px; }
+            .meta { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; font-size: 14px; background: #f8fafc; padding: 12px; border: 1px solid #e2e8f0; border-radius: 6px; }
+            .vitals-bar { display: flex; gap: 40px; background: #f1f5f9; padding: 10px 15px; margin-bottom: 25px; border-radius: 6px; font-weight: bold; font-size: 14px; }
+            .sec-title { font-size: 16px; font-weight: bold; color: #1e3a8a; margin-top: 20px; margin-bottom: 8px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 4px; text-transform: uppercase; }
+            .content { white-space: pre-line; font-size: 14px; color: #334155; padding-left: 5px; }
+          </style>
+        </head>
+        <body onload="window.print(); window.close();">
+          <div class="header">
+            <h2>HEALTH CLINIC & MEDICAL CENTER</h2>
+            <p>Digital Electronic Health Record Prescription Receipt</p>
+          </div>
+          <div class="meta">
+            <div><strong>Patient Name:</strong> ${currentPatientData.name}</div>
+            <div><strong>Token Identity:</strong> Ticket Token #${currentActiveToken}</div>
+            <div><strong>Contact No:</strong> ${currentPatientData.phone || 'N/A'}</div>
+            <div><strong>Date:</strong> ${new Date().toLocaleDateString()}</div>
+          </div>
+          <div class="vitals-bar">
+            <div>BP: ${bp} mmHg</div><div>Pulse: ${pulse} bpm</div><div>Temp: ${temp} °F</div><div>Weight: ${weight} kg</div>
+          </div>
+          <div class="sec-title">Presenting Symptoms</div>
+          <div class="content">${problems}</div>
+          <div class="sec-title">Rx (Medication Directives)</div>
+          <div class="content" style="font-weight: 600;">${medicines}</div>
+          <div class="sec-title">Investigations / Tests Requested</div>
+          <div class="content">${tests}</div>
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+    }
+
+    function triggerPanicAlert() {
+      socket.emit('panic-signal-triggered', { room: "Cabin 1" });
+      alert("🚨 Assistance trigger broadcasted to the front counter desk!");
+    }
+
+    async function holdCurrentPatient() {
+      if(confirm("Mark active patient as absent?")) await fetch('/api/queue/hold', { method: 'POST' });
+    }
+
+    async function recallPatient(tokenNumber) {
+      await fetch('/api/queue/recall', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tokenNumber })
+      });
+    }
+
+    // Ctrl+Enter keyboard listener shortcut compatibility
+    document.addEventListener('keydown', function(e) {
+      if (e.ctrlKey && e.key === 'Enter') submitConsultation();
+    });
+
+    socket.on('queue-updated', syncDoctorScreen);
+    syncDoctorScreen();
+  </script>
+</body>
+</html>
